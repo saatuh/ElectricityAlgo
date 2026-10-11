@@ -3,8 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-class HttpClient
-{
+class HttpClient {
 public:
     HttpClient();
     ~HttpClient();
