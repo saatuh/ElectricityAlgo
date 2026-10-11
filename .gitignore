@@ -1,0 +1,30 @@
+﻿# C++ build output
+build/
+cmake-build-*/
+out/
+Debug/
+Release/
+x64/
+.vs/
+
+# Compiled files
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+
+# Generated data and logs
+electricity_algo_log.csv
+*.log
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
