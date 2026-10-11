@@ -9,52 +9,35 @@
 #include <optional>
 #include <string>
 
-namespace
-{
-    void printNumber(
-        const char* label,
-        double value,
-        const char* unit)
-    {
+namespace {
+    void printNumber( const char* label,double value, const char* unit) {
         std::cout
             << std::left << std::setw(34) << label
             << std::fixed << std::setprecision(2)
             << value << ' ' << unit << '\n';
     }
 
-    void printOptional(
-        const char* label,
-        const std::optional<double>& value,
-        const char* unit)
-    {
+    void printOptional(const char* label,const std::optional<double>& value,const char* unit){
         std::cout << std::left << std::setw(34) << label;
 
-        if (value.has_value())
-        {
+        if (value.has_value()) {
             std::cout
                 << std::fixed << std::setprecision(2)
                 << *value << ' ' << unit;
-        }
-        else
-        {
+        } else {
             std::cout << "unavailable";
         }
 
         std::cout << '\n';
     }
 
-    std::string csvEscape(const std::string& value)
-    {
+    std::string csvEscape(const std::string& value) {
         std::string result = "\"";
 
-        for (const char ch : value)
-        {
-            if (ch == '"')
-            {
+        for (const char ch : value) {
+            if (ch == '"') {
                 result += "\"\"";
-            }
-            else
-            {
+            } else {
                 result += ch;
             }
         }
@@ -64,24 +47,14 @@ namespace
         return result;
     }
 
-    void writeOptional(
-        std::ofstream& file,
-        const std::optional<double>& value)
-    {
-        if (value.has_value())
-        {
+    void writeOptional(std::ofstream& file, const std::optional<double>& value) {
+        if (value.has_value()) {
             file << std::setprecision(12) << *value;
         }
     }
 
-    void appendObservation(
-        const GridState& grid,
-        const MarketFeatures& features,
-        MarketState state,
-        PaperSignal signal)
-    {
-        const std::string filename =
-            "electricity_algo_observations.csv";
+    void appendObservation(const GridState& grid, const MarketFeatures& features, MarketState state, PaperSignal signal) {
+        const std::string filename = "electricity_algo_observations.csv";
 
         std::ifstream existingFile(filename);
         const bool needsHeader = !existingFile.good();
@@ -89,15 +62,12 @@ namespace
 
         std::ofstream file(filename, std::ios::app);
 
-        if (!file)
-        {
-            std::cerr
-                << "Warning: could not open CSV observation file.\n";
+        if (!file) {
+            std::cerr << "Warning: could not open CSV observation file.\n";
             return;
         }
 
-        if (needsHeader)
-        {
+        if (needsHeader){
             file
                 << "snapshot_publish_time,"
                 << "snapshot_settlement_date,"
@@ -182,15 +152,13 @@ namespace
     }
 }
 
-int main()
-{
+int main() {
     std::cout
         << "====================================\n"
         << "          ELECTRICITY ALGO\n"
         << "====================================\n\n";
 
-    try
-    {
+    try {
         HttpClient http;
         ElexonClient elexon(http);
 
@@ -198,232 +166,94 @@ int main()
 
         std::cout << "FUELINST ingestion successful.\n";
 
-        try
-        {
+        try {
             elexon.fetchActualDemand(grid);
-        }
-        catch (const std::exception& error)
-        {
+        } catch (const std::exception& error) {
             std::cerr
                 << "ATL ingestion error: "
                 << error.what() << '\n';
         }
 
-        try
-        {
+        try {
             elexon.fetchDemandForecast(grid);
-        }
-        catch (const std::exception& error)
-        {
+        } catch (const std::exception& error) {
             std::cerr
                 << "DATL ingestion error: "
                 << error.what() << '\n';
         }
 
-        try
-        {
+        try {
             elexon.fetchMarketIndexPrice(grid);
-        }
-        catch (const std::exception& error)
-        {
-            std::cerr
-                << "MID ingestion error: "
-                << error.what() << '\n';
+        } catch (const std::exception& error) {
+            std::cerr << "MID ingestion error: " << error.what() << '\n';
         }
 
-        const MarketFeatures features =
-            calculateFeatures(grid);
+        const MarketFeatures features = calculateFeatures(grid);
 
-        const MarketState state =
-            classifyMarketState(features);
+        const MarketState state = classifyMarketState(features);
 
-        const PaperSignal signal =
-            generatePaperSignal(grid, features, state);
+        const PaperSignal signal = generatePaperSignal(grid, features, state);
 
         std::cout
             << "\n====================================\n"
             << "           CURRENT GRID STATE\n"
             << "====================================\n";
 
-        std::cout
-            << "Snapshot publication: "
-            << grid.snapshotPublishTime << '\n';
-
-        std::cout
-            << "Snapshot settlement date: "
-            << grid.settlementDate << '\n';
-
-        std::cout
-            << "Snapshot settlement period: "
-            << grid.settlementPeriod << '\n';
-
-        std::cout
-            << "Snapshot interval start: "
-            << grid.intervalStartTime << '\n';
+        std::cout << "Snapshot publication: " << grid.snapshotPublishTime << '\n';
+        std::cout << "Snapshot settlement date: " << grid.settlementDate << '\n';
+        std::cout << "Snapshot settlement period: " << grid.settlementPeriod << '\n';
+        std::cout << "Snapshot interval start: " << grid.intervalStartTime << '\n';
 
         printNumber("Wind generation:", grid.windGen, "MW");
         printNumber("Solar generation:", grid.solarGen, "MW");
         printNumber("Nuclear generation:", grid.nuclearGen, "MW");
         printNumber("Gas generation:", grid.gasGen, "MW");
-
-        printNumber(
-            "Tracked generation:",
-            features.trackedGenerationMW,
-            "MW"
-        );
-
+        printNumber("Tracked generation:", features.trackedGenerationMW, "MW");
         printNumber("Imports:", grid.imports, "MW");
         printNumber("Exports:", grid.exports, "MW");
-
-        printNumber(
-            "Net imports:",
-            features.netImportsMW,
-            "MW"
-        );
+        printNumber("Net imports:", features.netImportsMW, "MW");
 
         std::cout << "\n--- Actual demand ---\n";
 
-        printOptional(
-            "Actual demand:",
-            grid.actualDemand,
-            "MW"
-        );
+        printOptional("Actual demand:", grid.actualDemand, "MW");
 
-        std::cout
-            << "Actual-demand date: "
-            << (grid.actualDemandSettlementDate.empty()
-                    ? "unavailable"
-                    : grid.actualDemandSettlementDate)
-            << '\n';
-
-        std::cout
-            << "Actual-demand period: "
-            << (grid.actualDemandSettlementPeriod == 0
-                    ? "unavailable"
-                    : std::to_string(
-                          grid.actualDemandSettlementPeriod))
-            << '\n';
-
-        std::cout
-            << "Actual-demand interval: "
-            << (grid.actualDemandStartTime.empty()
-                    ? "unavailable"
-                    : grid.actualDemandStartTime)
-            << '\n';
-
-        std::cout
-            << "Actual-demand publication: "
-            << (grid.actualDemandPublishTime.empty()
-                    ? "unavailable"
-                    : grid.actualDemandPublishTime)
-            << '\n';
-
+        std::cout<< "Actual-demand date: " << (grid.actualDemandSettlementDate.empty() ? "unavailable" : grid.actualDemandSettlementDate)<< '\n';
+        std::cout << "Actual-demand period: " << (grid.actualDemandSettlementPeriod == 0 ? "unavailable" : std::to_string(grid.actualDemandSettlementPeriod))<< '\n';
+        std::cout << "Actual-demand interval: " << (grid.actualDemandStartTime.empty() ? "unavailable" : grid.actualDemandStartTime) << '\n';
+        std::cout << "Actual-demand publication: " << (grid.actualDemandPublishTime.empty() ? "unavailable" : grid.actualDemandPublishTime) << '\n';
         std::cout << "\n--- Demand forecast ---\n";
 
-        printOptional(
-            "Demand forecast:",
-            grid.demandForecast,
-            "MW"
-        );
+        printOptional("Demand forecast:", grid.demandForecast, "MW");
 
-        std::cout
-            << "Forecast date: "
-            << (grid.forecastSettlementDate.empty()
-                    ? "unavailable"
-                    : grid.forecastSettlementDate)
-            << '\n';
+        std::cout << "Forecast date: " << (grid.forecastSettlementDate.empty() ? "unavailable" : grid.forecastSettlementDate) << '\n';
+        std::cout << "Forecast period: " << (grid.forecastSettlementPeriod == 0 ? "unavailable" : std::to_string(grid.forecastSettlementPeriod)) << '\n';
+        std::cout << "Forecast interval: " << (grid.forecastStartTime.empty() ? "unavailable" : grid.forecastStartTime) << '\n';
+        std::cout << "Forecast publication: " << (grid.forecastPublishTime.empty() ? "unavailable" : grid.forecastPublishTime) << '\n';
 
-        std::cout
-            << "Forecast period: "
-            << (grid.forecastSettlementPeriod == 0
-                    ? "unavailable"
-                    : std::to_string(
-                          grid.forecastSettlementPeriod))
-            << '\n';
-
-        std::cout
-            << "Forecast interval: "
-            << (grid.forecastStartTime.empty()
-                    ? "unavailable"
-                    : grid.forecastStartTime)
-            << '\n';
-
-        std::cout
-            << "Forecast publication: "
-            << (grid.forecastPublishTime.empty()
-                    ? "unavailable"
-                    : grid.forecastPublishTime)
-            << '\n';
-
-        printOptional(
-            "Demand forecast error:",
-            features.demandForecastErrorMW,
-            "MW"
-        );
-
-        printOptional(
-            "Demand forecast error:",
-            features.demandErrorPercent,
-            "%"
-        );
+        printOptional("Demand forecast error:", features.demandForecastErrorMW, "MW");
+        printOptional("Demand forecast error:", features.demandErrorPercent, "%");
 
         std::cout << "\n--- Market index ---\n";
 
-        printOptional(
-            "Market index price:",
-            grid.marketIndexPrice,
-            "GBP/MWh"
-        );
+        printOptional("Market index price:", grid.marketIndexPrice, "GBP/MWh");
+        printOptional("Market index volume:", grid.marketIndexVolume, "MWh");
 
-        printOptional(
-            "Market index volume:",
-            grid.marketIndexVolume,
-            "MWh"
-        );
-
-        std::cout
-            << "MID providers: "
-            << (grid.marketIndexProviders.empty()
-                    ? "unavailable"
-                    : grid.marketIndexProviders)
-            << '\n';
-
+        std::cout << "MID providers: " << (grid.marketIndexProviders.empty() ? "unavailable" : grid.marketIndexProviders) << '\n';
         std::cout
             << "\n====================================\n"
             << "             SIGNAL ENGINE\n"
             << "====================================\n";
 
-        std::cout
-            << "Demand state: "
-            << toString(state) << '\n';
+        std::cout << "Demand state: " << toString(state) << '\n';
+        std::cout << "Paper signal: " << toString(signal) << '\n';
+        std::cout << "Order execution: DISABLED\n";
+        std::cout << "====================================\n";
 
-        std::cout
-            << "Paper signal: "
-            << toString(signal) << '\n';
+        appendObservation(grid, features, state, signal);
 
-        std::cout
-            << "Order execution: DISABLED\n";
-
-        std::cout
-            << "====================================\n";
-
-        appendObservation(
-            grid,
-            features,
-            state,
-            signal
-        );
-
-        std::cout
-            << "\nObservation file: "
-            << "electricity_algo_observations.csv\n";
-    }
-    catch (const std::exception& error)
-    {
-        std::cerr
-            << "\nFATAL ERROR: "
-            << error.what() << '\n';
-
+        std::cout << "\nObservation file: " << "electricity_algo_observations.csv\n";
+    } catch (const std::exception& error) {
+        std::cerr << "\nFATAL ERROR: " << error.what() << '\n';
         return 1;
     }
 
