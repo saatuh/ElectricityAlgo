@@ -6,8 +6,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-class ElexonClient
-{
+class ElexonClient {
 public:
     explicit ElexonClient(HttpClient& http);
 
