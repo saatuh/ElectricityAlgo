@@ -1,78 +1,48 @@
 #include "Strategy.hpp"
 
-MarketFeatures calculateFeatures(const GridState& grid)
-{
+MarketFeatures calculateFeatures(const GridState& grid) {
     MarketFeatures features;
 
-    features.trackedGenerationMW =
-        grid.windGen +
-        grid.solarGen +
-        grid.nuclearGen +
-        grid.gasGen;
+    features.trackedGenerationMW = grid.windGen + grid.solarGen + grid.nuclearGen + grid.gasGen;
 
-    features.netImportsMW =
-        grid.imports - grid.exports;
+    features.netImportsMW = grid.imports - grid.exports;
 
-    const bool sameInterval =
-        grid.actualDemand.has_value() &&
-        grid.demandForecast.has_value() &&
-        grid.actualDemandSettlementDate ==
-            grid.forecastSettlementDate &&
-        grid.actualDemandSettlementPeriod ==
-            grid.forecastSettlementPeriod &&
-        !grid.actualDemandStartTime.empty() &&
-        grid.actualDemandStartTime ==
-            grid.forecastStartTime;
+    const bool sameInterval = grid.actualDemand.has_value() && grid.demandForecast.has_value() && grid.actualDemandSettlementDate == grid.forecastSettlementDate &&  grid.actualDemandSettlementPeriod == grid.forecastSettlementPeriod && !grid.actualDemandStartTime.empty() && grid.actualDemandStartTime == grid.forecastStartTime;
 
-    if (sameInterval && *grid.demandForecast > 0.0)
-    {
-        const double error =
-            *grid.actualDemand - *grid.demandForecast;
+    if (sameInterval && *grid.demandForecast > 0.0) {
+        const double error = *grid.actualDemand - *grid.demandForecast;
 
         features.demandForecastErrorMW = error;
 
-        features.demandErrorPercent =
-            100.0 * error / *grid.demandForecast;
+        features.demandErrorPercent = 100.0 * error / *grid.demandForecast;
     }
 
     return features;
 }
 
-MarketState classifyMarketState(const MarketFeatures& features)
-{
-    if (!features.demandErrorPercent.has_value())
-    {
+MarketState classifyMarketState(const MarketFeatures& features) {
+    if (!features.demandErrorPercent.has_value()) {
         return MarketState::InsufficientData;
     }
 
-    if (*features.demandErrorPercent > 2.0)
-    {
+    if (*features.demandErrorPercent > 2.0) {
         return MarketState::DemandAboveForecast;
     }
 
-    if (*features.demandErrorPercent < -2.0)
-    {
+    if (*features.demandErrorPercent < -2.0) {
         return MarketState::DemandBelowForecast;
     }
 
     return MarketState::DemandNearForecast;
 }
 
-PaperSignal generatePaperSignal(
-    const GridState& grid,
-    const MarketFeatures& features,
-    MarketState state)
+PaperSignal generatePaperSignal(const GridState& grid,const MarketFeatures& features, MarketState state)
 {
-    if (!features.demandForecastErrorMW.has_value() ||
-        !grid.marketIndexPrice.has_value() ||
-        !grid.marketIndexVolume.has_value() ||
-        *grid.marketIndexVolume <= 0.0)
-    {
+    if (!features.demandForecastErrorMW.has_value() || !grid.marketIndexPrice.has_value() || !grid.marketIndexVolume.has_value() || *grid.marketIndexVolume <= 0.0) {
         return PaperSignal::NoSignal;
     }
 
-    switch (state)
-    {
+    switch (state) {
         case MarketState::DemandAboveForecast:
             return PaperSignal::Buy;
 
@@ -89,10 +59,8 @@ PaperSignal generatePaperSignal(
     return PaperSignal::NoSignal;
 }
 
-const char* toString(MarketState state)
-{
-    switch (state)
-    {
+const char* toString(MarketState state) {
+    switch (state) {
         case MarketState::InsufficientData:
             return "INSUFFICIENT_DATA";
 
@@ -109,10 +77,8 @@ const char* toString(MarketState state)
     return "UNKNOWN";
 }
 
-const char* toString(PaperSignal signal)
-{
-    switch (signal)
-    {
+const char* toString(PaperSignal signal) {
+    switch (signal) {
         case PaperSignal::NoSignal:
             return "NO SIGNAL";
 
